@@ -17,25 +17,28 @@ cur.execute("""
             )""")
 conn.commit()
 
+
 # Функция вывода содержимого таблицы
 def print_db(db_name):
     cur.execute(f'SELECT * FROM {db_name}')
     users = cur.fetchall()
     print('====================\nСодержимое БД:')
     for user in users:
-      print(user)
+        print(user)
     print('====================')
+
 
 # Функция для заполнения таблицы
 def parse_excel(path):
     df = pd.read_excel(path, sheet_name='Лист1')
-    df.to_sql('users', conn, if_exists='replace', index='False')
+    df.to_sql('users', conn, if_exists='replace', index=False)
     conn.commit()
     print('Данные в БД обновлены')
 
+
 if input('====================\nОбновить БД? Записи о чатах участников будут потеряны'
-        ' и им придется регистрироваться повторно [y/n]: ') == 'y':
-  parse_excel('users.xlsx')
+         ' и им придется регистрироваться повторно [y/n]: ') == 'y':
+    parse_excel('users.xlsx')
 else:
     print('Обновление БД пропущено')
 

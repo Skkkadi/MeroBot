@@ -3,12 +3,11 @@ print('====================\nЗапуск бота')
 import config
 from db_creation import *
 from SMM_texts import *
+import threading
 import telebot
 from telebot import types
-import threading
 
 bot = telebot.TeleBot(config.TOKEN)
-
 
 
 # Функция проверяющая права пользователя
@@ -16,20 +15,21 @@ def check_permissions(username):
     try:
         info = cur.execute('SELECT * FROM users WHERE username=? AND permission="user"', (f'@{username}',))
         if info.fetchone() is not None:
-            return 1            # Пользователь имеет права участника
+            return 1  # Пользователь имеет права участника
         else:
             info = cur.execute('SELECT * FROM users WHERE username=? AND permission="admin"', (f'@{username}',))
             if info.fetchone() is not None:
-                return 2        # Пользователь имеет права организатора
+                return 2  # Пользователь имеет права организатора
             else:
                 info = cur.execute('SELECT * FROM users WHERE username=? AND permission="curator"', (f'@{username}',))
                 if info.fetchone() is not None:
-                    return 3    # Пользователь имеет права куратора
+                    return 3  # Пользователь имеет права куратора
                 else:
-                    return 0    # Пользователя нет в БД
+                    return 0  # Пользователя нет в БД
     except Exception as e:
         print('Непредвиденная ошибка при попытке узнать права пользователя:')
         print(e)
+
 
 # Функция добавления нового пользователя в БД
 def add_user():
@@ -81,6 +81,7 @@ def add_user():
         else:
             print('Некорректная команда')
 
+
 # Функция отправки списка участников команды
 def send_team(user_chatid):
     try:
@@ -100,6 +101,7 @@ def send_team(user_chatid):
     except Exception as e:
         print('Непредвиденная ошибка при отправке списка команды:')
         print(e)
+
 
 # Функция отправки участнику изображения карты (и команды)
 def send_map(user_chatid):
@@ -134,10 +136,12 @@ def send_map(user_chatid):
         print('Непредвиденная ошибка при отправке карты:')
         print(e)
 
+
 # Функция приема письма от участника
 def gain_letter(user_chatid, username):
     try:
         bot.send_message(user_chatid, message_before_gain_letter, parse_mode='html')
+
         def receive_letter(message):
             if message.chat.id == user_chatid:
                 letter_text = message.text
@@ -147,10 +151,12 @@ def gain_letter(user_chatid, username):
                 bot.send_message(user_chatid, message_after_gain_letter, parse_mode='html')
                 bot.delete_message(message.chat.id, message.message_id)
                 print(f'Получено письмо от пользователя {username}')
+
         bot.register_next_step_handler_by_chat_id(user_chatid, receive_letter)
     except Exception as e:
         print('Непредвиденная ошибка при получении письма:')
         print(e)
+
 
 # Отправление клавиатуры куратору
 def send_curator_keyboard(chatid):
@@ -159,14 +165,14 @@ def send_curator_keyboard(chatid):
         curator_station = cur.fetchone()
 
         keyboard = types.InlineKeyboardMarkup(row_width=4)
-        buttons = [types.InlineKeyboardButton(str(i), callback_data=f"team_{i}") for i in range(1, config.team_quantity+1)]
+        buttons = [types.InlineKeyboardButton(str(i), callback_data=f"team_{i}") for i in
+                   range(1, config.team_quantity + 1)]
         keyboard.add(*buttons)
 
         bot.send_message(chatid, curator_keyboard_message, reply_markup=keyboard, parse_mode='html')
     except Exception as e:
         print('Непредвиденная ошибка при отправке клавиатуры куратору:')
         print(e)
-
 
 
 # Команда /start, регистрирует пользователя, записывая его chatid в БД и уведомляет о правах
@@ -182,11 +188,11 @@ def welcome(message):
         print(e)
     # Проверка разрешений пользователя
     user_permissions = check_permissions(message.from_user.username)
-    if user_permissions == 1:       # Если пользователь является участником
+    if user_permissions == 1:  # Если пользователь является участником
         bot.send_message(message.chat.id, welcome_message_for_user, parse_mode='html')
-    elif user_permissions == 2:     # Если пользователь является организатором
+    elif user_permissions == 2:  # Если пользователь является организатором
         bot.send_message(message.chat.id, welcome_message_for_admin, parse_mode='html')
-    elif user_permissions == 3:     # Если пользователь является куратором
+    elif user_permissions == 3:  # Если пользователь является куратором
         bot.send_message(message.chat.id, welcome_message_for_curator, parse_mode='html')
         cur.execute(f'SELECT station FROM users WHERE chatid={message.chat.id}')
         curator_station = cur.fetchone()
@@ -195,9 +201,8 @@ def welcome(message):
                                               'ты можешь обратиться к организаторам за помощью')
         else:
             bot.send_message(message.chat.id, f'Твоя станция: {int(curator_station[0])}', parse_mode='html')
-    else:                           # Если его нет в БД
+    else:  # Если его нет в БД
         bot.send_message(message.chat.id, welcome_message_for_unknown, parse_mode='html')
-
 
 
 # Команда /startmero, запускает рассылку и уведомляет пользователя о его команде и начале мероприятия
@@ -230,9 +235,9 @@ def startmero(message):
         unregistered_users = 0
         cur.execute('SELECT chatid FROM users WHERE permission="user"')
         chatids = cur.fetchall()
-        #try:
+        # try:
         #    video = open(f'./files/{config.video_filename}', 'rb')
-        #except Exception as e:
+        # except Exception as e:
         #    print('Ошибка при открытии видео:')
         #    print(e)
         for chat in chatids:
@@ -249,9 +254,9 @@ def startmero(message):
                 # Отправляет карту, по которой следует команда
                 send_map(int(chat[0]))
                 # Отправляет видео
-                #try:
+                # try:
                 #    bot.send_video(int(chat[0]), video, timeout=120)
-                #except:
+                # except:
                 #    pass
         else:
             bot.send_message(message.chat.id, 'Участники получили сообщения')
@@ -278,12 +283,11 @@ def startmero(message):
                 bot.send_message(message.chat.id, f'<u><b>{unregistered_users} пользователей не '
                                                   f'получили сообщения</b></u>', parse_mode='html')
         bot.send_message(message.chat.id, '<b>Рассылка окончена!</b>', parse_mode='html')
-        #video.close()
+        # video.close()
 
     else:
         bot.send_message(message.chat.id, 'У тебя нет прав организатора для этого')
         print(f'Пользователь {message.from_user.username} попытался начать мероприятие, откуда он знает команду?')
-
 
 
 # Команда /startletters начинает прием писем от участников
@@ -335,7 +339,6 @@ def adduser(message):
         print(f'Пользователь {message.from_user.username} попытался начать прием писем, откуда он знает команду?')
 
 
-
 # Обработчик нажатия на кнопки из клавиатуры куратора
 @bot.callback_query_handler(func=lambda call: call.data.startswith('team_'))
 def handle_team_button(call):
@@ -358,7 +361,6 @@ def handle_team_button(call):
     except Exception as e:
         print('Непредвиденная ошибка при отправлении уведомления от куратора:')
         print(e)
-
 
 
 input_thread = threading.Thread(target=add_user)
